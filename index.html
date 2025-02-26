@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 10px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            min-width: 600px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: #007bff;
+            color: white;
+        }
+        .form-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 400px;
+        }
+        .form-container input {
+            margin: 5px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 93%;
+        }
+        .delete-btn, .edit-btn {
+            background: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 5px;
+            margin-right: 5px;
+        }
+        .edit-btn {
+            background: orange;
+        }
+        .delete-btn:hover {
+            background: darkred;
+        }
+        .edit-btn:hover {
+            background: darkorange;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Hi Arvind Kumar</h1>
+    <button onclick="shareDashboard()">Share</button>
+    <button id="addBtn">Add</button>
+    <button onclick="exportToExcel()">Export as Excel</button>
+
+    <div id="formPopup" class="form-popup">
+        <div class="form-container">
+            <h2>Enter Details</h2>
+            <input type="date" id="date" placeholder="Date">
+            <input type="number" id="number" placeholder="No. of Sim" oninput="calculateAmount()">
+            <input type="text" id="frcValue" placeholder="FRC Value">
+            <input type="number" id="rate" placeholder="Rate" oninput="calculateAmount()">
+            <input type="text" id="amount" placeholder="Amount" readonly>
+            <input type="text" id="paidAmount" placeholder="Paid Amount" oninput="calculateTotalBalance()">
+            <input type="text" id="totalBalance" placeholder="Total Balance" readonly>
+            <input type="text" id="description" placeholder="Description">
+            <button id="submitBtn" onclick="addData()">Submit</button>
+            <button onclick="closeForm()">Close</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Number of Sim</th>
+                    <th>FRC Value</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                    <th>Paid Amount</th>
+                    <th>Total Balance</th>
+                    <th>Description</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="dataTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let editIndex = null;
+
+    document.getElementById("addBtn").addEventListener("click", function() {
+        editIndex = null;
+        document.getElementById("formPopup").style.display = "block";
+        document.getElementById("submitBtn").textContent = "Submit";
+    });
+
+    function closeForm() {
+        document.getElementById("formPopup").style.display = "none";
+        clearFields();
+    }
+
+    function calculateAmount() {
+        let number = document.getElementById("number").value;
+        let rate = document.getElementById("rate").value;
+        document.getElementById("amount").value = number && rate ? number * rate : "";
+        calculateTotalBalance();
+    }
+
+    function calculateTotalBalance() {
+        let amount = document.getElementById("amount").value || 0;
+        let paidAmount = document.getElementById("paidAmount").value || 0;
+        document.getElementById("totalBalance").value = amount - paidAmount;
+    }
+
+    function clearFields() {
+        document.querySelectorAll(".form-container input").forEach(input => input.value = "");
+    }
+
+    function addData() {
+        let fields = ["date", "number", "frcValue", "rate", "amount", "paidAmount", "totalBalance", "description"];
+        let data = {};
+
+        fields.forEach(field => {
+            data[field] = document.getElementById(field).value;
+        });
+
+        let existingData = JSON.parse(localStorage.getItem("dashboardData")) || [];
+
+        if (editIndex !== null) {
+            existingData[editIndex] = data;
+        } else {
+            existingData.push(data);
+        }
+
+        localStorage.setItem("dashboardData", JSON.stringify(existingData));
+        closeForm();
+        renderTable();
+    }
+
+    function renderTable() {
+        let table = document.getElementById("dataTable");
+        table.innerHTML = "";
+
+        let storedData = JSON.parse(localStorage.getItem("dashboardData")) || [];
+
+        storedData.forEach((row, index) => {
+            let tr = document.createElement("tr");
+
+            Object.values(row).forEach(text => {
+                let td = document.createElement("td");
+                td.textContent = text;
+                tr.appendChild(td);
+            });
+
+            let actionTd = document.createElement("td");
+
+            let editBtn = document.createElement("button");
+            editBtn.textContent = "Edit";
+            editBtn.classList.add("edit-btn");
+            editBtn.onclick = function() {
+                editIndex = index;
+                populateForm(row);
+                document.getElementById("formPopup").style.display = "block";
+                document.getElementById("submitBtn").textContent = "Update";
+            };
+
+            let deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "Delete";
+            deleteBtn.classList.add("delete-btn");
+            deleteBtn.onclick = function() {
+                deleteRow(index);
+            };
+
+            actionTd.appendChild(editBtn);
+            actionTd.appendChild(deleteBtn);
+            tr.appendChild(actionTd);
+            table.appendChild(tr);
+        });
+    }
+
+    function exportToExcel() {
+        let table = document.querySelector("table");
+        let workbook = XLSX.utils.table_to_book(table);
+        XLSX.writeFile(workbook, "dashboard_data.xlsx");
+    }
+
+    function deleteRow(index) {
+        let storedData = JSON.parse(localStorage.getItem("dashboardData")) || [];
+        storedData.splice(index, 1);
+        localStorage.setItem("dashboardData", JSON.stringify(storedData));
+        renderTable();
+    }
+
+    document.addEventListener("DOMContentLoaded", renderTable);
+</script>
+<script>
+    function deleteRow(index) {
+        let confirmation = confirm("Are you sure you want to delete this record?");
+        if (!confirmation) return;
+
+        let storedData = JSON.parse(localStorage.getItem("dashboardData")) || [];
+        storedData.splice(index, 1);
+        localStorage.setItem("dashboardData", JSON.stringify(storedData));
+        renderTable();
+    }
+</script>
+    <script>
+    function addData() {
+        let fields = ["date", "number", "frcValue", "rate", "amount", "paidAmount", "totalBalance", "description"];
+        let data = {};
+
+        fields.forEach(field => {
+            let value = document.getElementById(field).value.trim();
+            data[field] = value === "" ? "Nil" : value; // Replace empty values with "Nil"
+        });
+
+        let existingData = JSON.parse(localStorage.getItem("dashboardData")) || [];
+
+        if (editIndex !== null) {
+            existingData[editIndex] = data;
+        } else {
+            existingData.push(data);
+        }
+
+        localStorage.setItem("dashboardData", JSON.stringify(existingData));
+        closeForm();
+        renderTable();
+    }
+
+    function deleteRow(index) {
+        let confirmation = confirm("Are you sure you want to delete this record?");
+        if (!confirmation) return;
+
+        let storedData = JSON.parse(localStorage.getItem("dashboardData")) || [];
+        storedData.splice(index, 1);
+        localStorage.setItem("dashboardData", JSON.stringify(storedData));
+        renderTable();
+    }
+
+    function shareDashboard() {
+        let url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            alert("Dashboard link copied to clipboard!");
+        }).catch(err => {
+            console.error("Error copying link: ", err);
+        });
+    }
+</script>
+</body>
+</html>
