@@ -96,6 +96,36 @@
         .edit-btn:hover {
             background: darkorange;
         }
+        /* Active border for input fields */
+    
+        .form-container input:focus {
+            border: 2px solid #007bff;
+            outline: none;
+        }
+        
+        /* Active border for table cells */
+        td:hover {
+            border: 2px solid #888;
+        }
+        
+        td:focus, td:active {
+            border: 2px solid #007bff;
+            outline: none;
+        }
+    
+        .watermark {
+        position: fixed;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.3);
+        font-weight: bold;
+        pointer-events: none; /* Prevent interaction */
+        user-select: none; /* Prevent selection */
+        }
+
+
     </style>
 </head>
 <body>
@@ -111,11 +141,11 @@
             <h2>Enter Details</h2>
             <input type="date" id="date" placeholder="Date">
             <input type="number" id="number" placeholder="No. of Sim" oninput="calculateAmount()">
-            <input type="text" id="frcValue" placeholder="FRC Value">
+            <input type="number" id="frcValue" placeholder="FRC Value">
             <input type="number" id="rate" placeholder="Rate" oninput="calculateAmount()">
-            <input type="text" id="amount" placeholder="Amount" readonly>
-            <input type="text" id="paidAmount" placeholder="Paid Amount" oninput="calculateTotalBalance()">
-            <input type="text" id="totalBalance" placeholder="Total Balance" readonly>
+            <input type="number" id="amount" placeholder="Amount" readonly>
+            <input type="number" id="paidAmount" placeholder="Paid Amount" oninput="calculateTotalBalance()">
+            <input type="number" id="totalBalance" placeholder="Total Balance" readonly>
             <input type="text" id="description" placeholder="Description">
             <button id="submitBtn" onclick="addData()">Submit</button>
             <button onclick="closeForm()">Close</button>
@@ -141,7 +171,7 @@
         </table>
     </div>
 </div>
-
+<div class="watermark"> Created by ProgrammerKR </div>
 <script>
     let editIndex = null;
 
@@ -173,26 +203,39 @@
         document.querySelectorAll(".form-container input").forEach(input => input.value = "");
     }
 
-    function addData() {
-        let fields = ["date", "number", "frcValue", "rate", "amount", "paidAmount", "totalBalance", "description"];
-        let data = {};
+    function populateForm(data) {
+    document.getElementById("date").value = data.date;
+    document.getElementById("number").value = data.number;
+    document.getElementById("frcValue").value = data.frcValue;
+    document.getElementById("rate").value = data.rate;
+    document.getElementById("amount").value = data.amount;
+    document.getElementById("paidAmount").value = data.paidAmount;
+    document.getElementById("totalBalance").value = data.totalBalance;
+    document.getElementById("description").value = data.description;
+}
 
-        fields.forEach(field => {
-            data[field] = document.getElementById(field).value;
-        });
+function addData() {
+    let fields = ["date", "number", "frcValue", "rate", "amount", "paidAmount", "totalBalance", "description"];
+    let data = {};
 
-        let existingData = JSON.parse(localStorage.getItem("dashboardData")) || [];
+    fields.forEach(field => {
+        let value = document.getElementById(field).value.trim();
+        data[field] = value === "" ? "Nil" : value;
+    });
 
-        if (editIndex !== null) {
-            existingData[editIndex] = data;
-        } else {
-            existingData.push(data);
-        }
+    let existingData = JSON.parse(localStorage.getItem("dashboardData")) || [];
 
-        localStorage.setItem("dashboardData", JSON.stringify(existingData));
-        closeForm();
-        renderTable();
+    if (editIndex !== null) {
+        existingData[editIndex] = data; // Correctly update existing entry
+    } else {
+        existingData.push(data);
     }
+
+    localStorage.setItem("dashboardData", JSON.stringify(existingData));
+    closeForm();
+    renderTable();
+}
+
 
     function renderTable() {
         let table = document.getElementById("dataTable");
