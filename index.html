@@ -124,14 +124,31 @@
         pointer-events: none; /* Prevent interaction */
         user-select: none; /* Prevent selection */
         }
-
+    
+        .uname {
+        border: 2px solid #007bff; /* Blue border */
+        padding: 10px;
+        display: inline-block;
+        border-radius: 5px;
+        }
+    
+        .wmessage {
+        border: 2px solid #28a745; /* Green border */
+        padding: 10px;
+        display: inline-block;
+        border-radius: 5px;
+        }
+                
 
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Hi Arvind Kumar</h1>
+    
+    <h1 class="uname">Hello, Arvind Kumar</h1>
+    <h3 class="wmessage">Welcome to SIM Retailer Dashboard</h3>
+    
     <button onclick="shareDashboard()">Share</button>
     <button id="addBtn">Add</button>
     <button onclick="exportToExcel()">Export as Excel</button>
